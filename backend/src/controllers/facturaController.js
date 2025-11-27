@@ -40,12 +40,19 @@ export const createFactura = async (req, res) => {
   }
 };
 
-// Obtener factura por orden
+// Obtener factura por orden con detalles completos
 export const getFacturaByOrden = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      "SELECT * FROM factura WHERE id_orden = $1",
+      `SELECT f.*, o.diagnostico, o.costo_mano_obra, o.id_vehiculo, 
+              v.placa, v.marca, v.modelo, v.anio,
+              c.nombre as cliente_nombre, c.telefono as cliente_telefono, c.correo as cliente_correo
+       FROM factura f
+       JOIN orden_servicio o ON f.id_orden = o.id_orden
+       JOIN vehiculo v ON o.id_vehiculo = v.id_vehiculo
+       JOIN cliente c ON v.id_cliente = c.id_cliente
+       WHERE f.id_orden = $1`,
       [id]
     );
 
@@ -53,7 +60,19 @@ export const getFacturaByOrden = async (req, res) => {
       return res.status(404).json({ error: "Factura no encontrada" });
     }
 
-    res.json(result.rows[0]);
+    // Obtener repuestos usados en la orden
+    const repuestosResult = await pool.query(
+      `SELECT ur.*, r.nombre, r.codigo
+       FROM uso_repuesto ur
+       JOIN repuesto r ON ur.id_repuesto = r.id_repuesto
+       WHERE ur.id_orden = $1`,
+      [id]
+    );
+
+    const factura = result.rows[0];
+    factura.repuestos = repuestosResult.rows;
+
+    res.json(factura);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -63,8 +82,8 @@ export const getFacturaByOrden = async (req, res) => {
 export const getFacturas = async (req, res) => {
   try {
     let query = `
-      SELECT f.id_factura, f.id_orden, f.numero_factura, f.fecha_emision, 
-             f.estado, f.metodo_pago, f.subtotal, f.iva, f.total,
+      SELECT f.id_factura, f.id_orden, f.fecha_emision, 
+             f.estado, f.metodo_pago, f.subtotal, f.iva, f.total, f.descuento,
              o.id_vehiculo, v.placa, v.marca, v.modelo, c.nombre as cliente_nombre, c.id_cliente,
              o.diagnostico, o.costo_mano_obra as monto_mano_obra,
              COALESCE(o.costo_total, 0) as subtotal_orden
