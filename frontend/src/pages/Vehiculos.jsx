@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Car as CarIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import vehiculoService from '../services/vehiculoService';
 import clienteService from '../services/clienteService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -7,6 +8,7 @@ import { formatDateShort } from '../utils/formatters';
 import { TIPOS_VEHICULO } from '../utils/constants';
 
 const Vehiculos = () => {
+  const { isAdmin } = useAuth();
   const [vehiculos, setVehiculos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -141,13 +143,15 @@ const Vehiculos = () => {
           <h1 className="text-3xl font-bold text-gray-900">Vehículos</h1>
           <p className="text-gray-600 mt-1">Gestiona los vehículos registrados</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="btn btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Vehículo
-        </button>
+        {isAdmin() && (
+          <button
+            onClick={() => handleOpenModal()}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Vehículo
+          </button>
+        )}
       </div>
 
       {/* Búsqueda */}
@@ -212,19 +216,23 @@ const Vehiculos = () => {
               </div>
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleOpenModal(vehiculo)}
-                  className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(vehiculo.id_vehiculo)}
-                  className="btn btn-danger flex items-center justify-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin() && (
+                  <>
+                    <button
+                      onClick={() => handleOpenModal(vehiculo)}
+                      className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(vehiculo.id_vehiculo)}
+                      className="btn btn-danger flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))

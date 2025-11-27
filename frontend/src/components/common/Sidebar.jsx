@@ -25,7 +25,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       name: 'Clientes',
       icon: Users,
       path: '/clientes',
-      roles: ['administrador', 'mecanico']
+      roles: ['administrador']
     },
     {
       name: 'Vehículos',
@@ -56,6 +56,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       icon: UserCog,
       path: '/usuarios',
       roles: ['administrador']
+    },
+    {
+      name: 'Mis Vehículos',
+      icon: Car,
+      path: '/mis-vehiculos',
+      roles: ['cliente']
+    },
+    {
+      name: 'Mis Órdenes',
+      icon: Wrench,
+      path: '/mis-ordenes',
+      roles: ['cliente']
     }
   ];
 

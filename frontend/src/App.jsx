@@ -15,6 +15,8 @@ import Facturas from './pages/Facturas';
 import Usuarios from './pages/Usuarios';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
+import MisVehiculos from './pages/MisVehiculos';
+import MisOrdenes from './pages/MisOrdenes';
 import NotFound from './pages/NotFound';
 
 // Componentes
@@ -114,6 +116,26 @@ function App() {
 
           {/* Configuración - Todos los roles */}
           <Route path="configuracion" element={<Configuracion />} />
+
+          {/* Mis Vehículos - Solo Cliente */}
+          <Route
+            path="mis-vehiculos"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <MisVehiculos />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Mis Órdenes - Solo Cliente */}
+          <Route
+            path="mis-ordenes"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <MisOrdenes />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* 404 - Not Found */}
