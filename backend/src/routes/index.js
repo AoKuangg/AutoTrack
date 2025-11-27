@@ -135,7 +135,7 @@ router.delete("/vehiculos/:id", authenticateToken, isAdmin, deleteVehiculo);
 
 // ==================== ÓRDENES DE SERVICIO (Admin, Mecánico y Cliente) ====================
 router.get("/ordenes", authenticateToken, getOrdenes);
-router.get("/ordenes/:id", authenticateToken, isMecanicoOrAdmin, getOrdenById);
+router.get("/ordenes/:id", authenticateToken, getOrdenById);
 router.post("/ordenes", authenticateToken, isMecanicoOrAdmin, createOrden);
 router.put("/ordenes/:id", authenticateToken, isMecanicoOrAdmin, updateOrden);
 router.patch(
@@ -181,8 +181,8 @@ router.patch(
 );
 router.delete("/repuestos/:id", authenticateToken, isAdmin, deleteRepuesto);
 
-// ==================== FACTURAS (Admin) ====================
-router.get("/facturas", authenticateToken, isAdmin, getFacturas);
+// ==================== FACTURAS (Admin y Cliente) ====================
+router.get("/facturas", authenticateToken, getFacturas);
 router.post("/facturas", authenticateToken, isAdmin, createFactura);
 router.get(
   "/ordenes/:id/factura",

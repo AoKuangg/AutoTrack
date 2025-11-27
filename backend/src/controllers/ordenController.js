@@ -38,7 +38,7 @@ export const getOrdenById = async (req, res) => {
       `
       SELECT o.*, v.placa, v.marca, v.modelo, v.anio, v.color,
              c.nombre as cliente_nombre, c.telefono as cliente_telefono, 
-             c.correo as cliente_correo, c.direccion as cliente_direccion
+             c.correo as cliente_correo, c.direccion as cliente_direccion, c.id_cliente
       FROM orden_servicio o
       JOIN vehiculo v ON o.id_vehiculo = v.id_vehiculo
       JOIN cliente c ON v.id_cliente = c.id_cliente
@@ -49,6 +49,14 @@ export const getOrdenById = async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Orden no encontrada" });
+    }
+
+    // Si es cliente, verificar que la orden sea de su vehículo
+    if (
+      req.usuario.rol === "cliente" &&
+      result.rows[0].id_cliente !== req.usuario.id_cliente
+    ) {
+      return res.status(403).json({ error: "No tienes acceso a esta orden" });
     }
 
     // Obtener repuestos usados en esta orden
