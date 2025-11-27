@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, FileText, Eye, DollarSign, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
-import api from '../services/api';
+import { Search, FileText, Eye, DollarSign, Calendar, CheckCircle, Clock, XCircle, RefreshCw, X } from 'lucide-react';
+import factureService from '../services/factureService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatCurrency, formatDateTime, formatDateShort } from '../utils/formatters';
 
 const Facturas = () => {
+  const { success, error: showError } = useToast();
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,31 +14,46 @@ const Facturas = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedFactura, setSelectedFactura] = useState(null);
   const [ordenDetalle, setOrdenDetalle] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     fetchFacturas();
+    // Actualizar cada 30 segundos automáticamente
+    const interval = setInterval(() => {
+      fetchFacturas();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchFacturas = async () => {
     try {
-      const response = await api.get('/api/facturas');
-      setFacturas(response.data);
+      const data = await factureService.getAll();
+      console.log('Facturas cargadas:', data);
+      setFacturas(data);
     } catch (error) {
       console.error('Error al cargar facturas:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchFacturas();
   };
 
   const handleOpenDetail = async (factura) => {
     try {
       setSelectedFactura(factura);
       // Obtener detalles de la orden
-      const response = await api.get(`/api/ordenes/${factura.id_orden}`);
-      setOrdenDetalle(response.data);
+      const data = await factureService.getByOrden(factura.id_orden);
+      setOrdenDetalle(data);
       setShowDetailModal(true);
     } catch (error) {
-      alert('Error al cargar detalles de la factura');
+      showError('Error al cargar detalles de la factura');
     }
   };
 
@@ -47,17 +64,25 @@ const Facturas = () => {
   };
 
   const handleUpdateEstado = async (idFactura, nuevoEstado) => {
-    if (!window.confirm(`¿Marcar factura como ${nuevoEstado}?`)) return;
+    setConfirmAction({ idFactura, nuevoEstado });
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmEstado = async () => {
+    if (!confirmAction) return;
+    
     try {
-      await api.patch(`/api/facturas/${idFactura}/estado`, { estado: nuevoEstado });
+      await factureService.updateEstado(confirmAction.idFactura, confirmAction.nuevoEstado);
+      success(`✅ Factura marcada como ${confirmAction.nuevoEstado}`);
       fetchFacturas();
       if (selectedFactura) {
-        const updatedFactura = { ...selectedFactura, estado: nuevoEstado };
+        const updatedFactura = { ...selectedFactura, estado: confirmAction.nuevoEstado };
         setSelectedFactura(updatedFactura);
       }
+      setShowConfirmModal(false);
+      setConfirmAction(null);
     } catch (error) {
-      alert(error.response?.data?.error || 'Error al actualizar estado');
+      showError(error.error || 'Error al actualizar estado');
     }
   };
 
@@ -114,9 +139,19 @@ const Facturas = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Facturas</h1>
-        <p className="text-gray-600 mt-1">Gestiona las facturas del taller</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Facturas</h1>
+          <p className="text-gray-600 mt-1">Gestiona las facturas del taller</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn btn-secondary flex items-center gap-2"
+        >
+          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Actualizando...' : 'Actualizar'}
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -377,6 +412,48 @@ const Facturas = () => {
                   Marcar como Pagada
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación */}
+      {showConfirmModal && confirmAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Confirmar Acción</h3>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas marcar esta factura como <span className="font-bold capitalize">{confirmAction.nuevoEstado}</span>?
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmEstado}
+                className="btn btn-success"
+              >
+                Confirmar
+              </button>
             </div>
           </div>
         </div>

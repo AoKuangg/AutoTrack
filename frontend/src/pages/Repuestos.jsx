@@ -3,15 +3,19 @@ import { Plus, Search, Edit2, Trash2, X, Package, AlertTriangle } from 'lucide-r
 import { useAuth } from '../context/AuthContext';
 import repuestoService from '../services/repuestoService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatCurrency, formatDateShort } from '../utils/formatters';
 
 const Repuestos = () => {
   const { isAdmin } = useAuth();
+  const { success, error: showError } = useToast();
   const [repuestos, setRepuestos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [editingRepuesto, setEditingRepuesto] = useState(null);
+  const [repuestoToDelete, setRepuestoToDelete] = useState(null);
   const [formData, setFormData] = useState({
     codigo: '',
     nombre: '',
@@ -94,8 +98,10 @@ const Repuestos = () => {
     try {
       if (editingRepuesto) {
         await repuestoService.update(editingRepuesto.id_repuesto, formData);
+        success('✅ Repuesto actualizado exitosamente');
       } else {
         await repuestoService.create(formData);
+        success('✅ Repuesto creado exitosamente');
       }
       fetchRepuestos();
       handleCloseModal();
@@ -106,14 +112,22 @@ const Repuestos = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este repuesto?')) return;
+  const handleDelete = (repuesto) => {
+    setRepuestoToDelete(repuesto);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!repuestoToDelete) return;
 
     try {
-      await repuestoService.delete(id);
+      await repuestoService.delete(repuestoToDelete.id_repuesto);
+      success('✅ Repuesto eliminado exitosamente');
       fetchRepuestos();
+      setShowConfirmDelete(false);
+      setRepuestoToDelete(null);
     } catch (error) {
-      alert(error.error || 'Error al eliminar repuesto');
+      showError(error.error || 'Error al eliminar repuesto');
     }
   };
 
@@ -245,7 +259,7 @@ const Repuestos = () => {
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(repuesto.id_repuesto)}
+                              onClick={() => handleDelete(repuesto)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Eliminar"
                             >
@@ -414,6 +428,35 @@ const Repuestos = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmación Eliminar */}
+      {showConfirmDelete && repuestoToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas eliminar el repuesto <span className="font-bold">{repuestoToDelete.nombre}</span>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  setRepuestoToDelete(null);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="btn btn-danger"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

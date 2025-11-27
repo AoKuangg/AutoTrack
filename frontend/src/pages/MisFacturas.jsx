@@ -4,10 +4,12 @@ import { FileText, DollarSign, Calendar, CheckCircle, Clock, AlertCircle, Downlo
 import factureService from '../services/factureService';
 import ordenService from '../services/ordenService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatCurrency, formatDateShort } from '../utils/formatters';
 
 const MisFacturas = () => {
   const { usuario } = useAuth();
+  const { error: showError } = useToast();
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +39,7 @@ const MisFacturas = () => {
       const data = await ordenService.getById(factura.id_orden);
       setOrdenDetalle(data);
     } catch (error) {
-      alert('Error al cargar detalles de la factura');
+      showError('Error al cargar detalles de la factura');
     }
   };
 

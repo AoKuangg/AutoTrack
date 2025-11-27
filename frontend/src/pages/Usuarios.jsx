@@ -2,17 +2,21 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Key, UserCheck } from 'lucide-react';
 import usuarioService from '../services/usuarioService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatDateShort } from '../utils/formatters';
 import { ROLES, ROLES_LABELS, ROLES_COLORS } from '../utils/constants';
 
 const Usuarios = () => {
+  const { success, error: showError } = useToast();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showConfirmDeactivate, setShowConfirmDeactivate] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState(null);
   const [resetUsuario, setResetUsuario] = useState(null);
+  const [usuarioToDeactivate, setUsuarioToDeactivate] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -119,7 +123,7 @@ const Usuarios = () => {
 
     try {
       await usuarioService.resetPassword(resetUsuario.id_usuario, resetPassword);
-      alert('Contraseña reseteada exitosamente');
+      success('✅ Contraseña reseteada exitosamente');
       handleCloseResetModal();
     } catch (error) {
       setError(error.error || 'Error al resetear contraseña');
@@ -128,23 +132,32 @@ const Usuarios = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de desactivar este usuario?')) return;
+  const handleDelete = (usuario) => {
+    setUsuarioToDeactivate(usuario);
+    setShowConfirmDeactivate(true);
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!usuarioToDeactivate) return;
 
     try {
-      await usuarioService.delete(id);
+      await usuarioService.delete(usuarioToDeactivate.id_usuario);
+      success('✅ Usuario desactivado exitosamente');
       fetchUsuarios();
+      setShowConfirmDeactivate(false);
+      setUsuarioToDeactivate(null);
     } catch (error) {
-      alert(error.error || 'Error al desactivar usuario');
+      showError(error.error || 'Error al desactivar usuario');
     }
   };
 
   const handleActivate = async (id) => {
     try {
       await usuarioService.activate(id);
+      success('✅ Usuario reactivado exitosamente');
       fetchUsuarios();
     } catch (error) {
-      alert(error.error || 'Error al reactivar usuario');
+      showError(error.error || 'Error al reactivar usuario');
     }
   };
 
@@ -249,7 +262,7 @@ const Usuarios = () => {
                               <Key className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(usuario.id_usuario)}
+                              onClick={() => handleDelete(usuario)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Desactivar"
                             >
@@ -436,6 +449,35 @@ const Usuarios = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmación Desactivar */}
+      {showConfirmDeactivate && usuarioToDeactivate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar desactivación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas desactivar al usuario <span className="font-bold">{usuarioToDeactivate.nombre}</span>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmDeactivate(false);
+                  setUsuarioToDeactivate(null);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDeactivate}
+                className="btn btn-danger"
+              >
+                Desactivar
+              </button>
+            </div>
           </div>
         </div>
       )}

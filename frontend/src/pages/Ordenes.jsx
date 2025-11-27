@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Edit2, Package, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Search, Eye, Edit2, Package, FileText, AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
 import ordenService from '../services/ordenService';
 import vehiculoService from '../services/vehiculoService';
 import repuestoService from '../services/repuestoService';
+import factureService from '../services/factureService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatCurrency, formatDateShort, formatDateTime } from '../utils/formatters';
 import { ESTADOS_ORDEN, ESTADOS_LABELS, ESTADOS_COLORS } from '../utils/constants';
 
 const Ordenes = () => {
+  const { success, error: showError, warning } = useToast();
   const [ordenes, setOrdenes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [repuestos, setRepuestos] = useState([]);
@@ -18,11 +21,13 @@ const Ordenes = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddRepuestoModal, setShowAddRepuestoModal] = useState(false);
   const [showCambioEstadoModal, setShowCambioEstadoModal] = useState(false);
+  const [showGenerarFacturaModal, setShowGenerarFacturaModal] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState(null);
   const [selectedRepuesto, setSelectedRepuesto] = useState('');
   const [repuestoCantidad, setRepuestoCantidad] = useState(1);
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [observacionesEstado, setObservacionesEstado] = useState('');
+  const [metodo_pago, setMetodo_pago] = useState('efectivo');
   const [formData, setFormData] = useState({
     id_vehiculo: '',
     diagnostico: '',
@@ -79,7 +84,7 @@ const Ordenes = () => {
       setSelectedOrden(detalleOrden);
       setShowDetailModal(true);
     } catch (error) {
-      alert('Error al cargar detalles de la orden');
+      showError('Error al cargar detalles de la orden');
     }
   };
 
@@ -133,12 +138,13 @@ const Ordenes = () => {
       await ordenService.updateEstado(selectedOrden.id_orden, nuevoEstado, observacionesEstado);
       fetchData();
       handleCloseCambioEstadoModal();
+      success(`Estado cambiado a ${ESTADOS_LABELS[nuevoEstado]}`);
       // Recargar detalles si el modal de detalles está abierto
       if (showDetailModal) {
         handleOpenDetailModal(selectedOrden);
       }
     } catch (error) {
-      alert(error.error || 'Error al actualizar estado');
+      showError(error.error || 'Error al actualizar estado');
     } finally {
       setSubmitting(false);
     }
@@ -158,7 +164,7 @@ const Ordenes = () => {
 
   const handleConfirmAddRepuesto = async () => {
     if (!selectedRepuesto) {
-      alert('Selecciona un repuesto');
+      showError('Selecciona un repuesto');
       return;
     }
 
@@ -170,11 +176,42 @@ const Ordenes = () => {
       fetchData();
       handleOpenDetailModal(selectedOrden);
       handleCloseAddRepuestoModal();
+      success('Repuesto agregado correctamente');
     } catch (error) {
-      alert(error.error || 'Error al agregar repuesto');
+      showError(error.error || 'Error al agregar repuesto');
     }
   };
 
+  const handleOpenGenerarFacturaModal = (orden) => {
+    setSelectedOrden(orden);
+    setMetodo_pago('efectivo');
+    setShowGenerarFacturaModal(true);
+  };
+
+  const handleCloseGenerarFacturaModal = () => {
+    setShowGenerarFacturaModal(false);
+    setMetodo_pago('efectivo');
+  };
+
+  const handleConfirmGenerarFactura = async () => {
+    try {
+      setSubmitting(true);
+      await factureService.create({
+        id_orden: selectedOrden.id_orden,
+        metodo_pago: metodo_pago
+      });
+      success('✅ Factura generada exitosamente');
+      fetchData();
+      handleCloseGenerarFacturaModal();
+      if (showDetailModal) {
+        handleOpenDetailModal(selectedOrden);
+      }
+    } catch (error) {
+      showError(error.error || 'Error al generar factura');
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const filteredOrdenes = ordenes.filter(orden => {
     const matchSearch = 
       orden.placa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -291,7 +328,7 @@ const Ordenes = () => {
                     Ver Detalles
                   </button>
 
-                  {orden.estado !== 'finalizado' && orden.estado !== 'entregado' && (
+                  {orden.estado !== 'entregado' && (
                     <div className="relative group">
                       <button
                         className="btn btn-primary btn-sm w-full flex items-center justify-center gap-2 text-sm"
@@ -314,6 +351,16 @@ const Ordenes = () => {
                           ))}
                       </div>
                     </div>
+                  )}
+
+                  {orden.estado === 'finalizado' && (
+                    <button
+                      onClick={() => handleOpenGenerarFacturaModal(orden)}
+                      className="btn btn-success btn-sm w-full flex items-center justify-center gap-2 text-sm"
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      Generar Factura
+                    </button>
                   )}
                 </div>
               </div>
@@ -719,6 +766,85 @@ const Ordenes = () => {
                   <>
                     <CheckCircle className="w-4 h-4" />
                     Confirmar Cambio
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Generar Factura */}
+      {showGenerarFacturaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-green-100 p-3 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Generar Factura</h2>
+            </div>
+
+            {/* Información de la orden */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">Orden #<span className="font-bold text-gray-900">{selectedOrden?.id_orden}</span></p>
+              {selectedOrden && (
+                <>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Total: <span className="font-bold text-primary-600">{formatCurrency(selectedOrden.costo_total)}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Vehículo: <span className="font-medium">{selectedOrden.placa}</span>
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Método de pago */}
+            <div className="mb-4">
+              <label className="label">Método de Pago</label>
+              <select
+                value={metodo_pago}
+                onChange={(e) => setMetodo_pago(e.target.value)}
+                className="input"
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta de Crédito</option>
+                <option value="transferencia">Transferencia Bancaria</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+
+            {/* Info */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800">
+                ℹ️ Al generar la factura, se creará el comprobante de pago. El cliente podrá verla en su sección "Mis Facturas".
+              </p>
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseGenerarFacturaModal}
+                className="btn btn-secondary flex-1"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmGenerarFactura}
+                className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4" />
+                    Generar Factura
                   </>
                 )}
               </button>

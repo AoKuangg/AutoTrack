@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, X, Phone, Mail, MapPin } from 'lucide-react';
 import clienteService from '../services/clienteService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatDateShort, formatPhone } from '../utils/formatters';
 
 const Clientes = () => {
+  const { success, error: showError } = useToast();
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
+  const [clienteToDelete, setClienteToDelete] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -83,8 +87,10 @@ const Clientes = () => {
     try {
       if (editingCliente) {
         await clienteService.update(editingCliente.id_cliente, formData);
+        success('✅ Cliente actualizado exitosamente');
       } else {
         await clienteService.create(formData);
+        success('✅ Cliente creado exitosamente');
       }
       fetchClientes();
       handleCloseModal();
@@ -95,14 +101,22 @@ const Clientes = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este cliente?')) return;
+  const handleDelete = (cliente) => {
+    setClienteToDelete(cliente);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!clienteToDelete) return;
 
     try {
-      await clienteService.delete(id);
+      await clienteService.delete(clienteToDelete.id_cliente);
+      success('✅ Cliente eliminado exitosamente');
       fetchClientes();
+      setShowConfirmDelete(false);
+      setClienteToDelete(null);
     } catch (error) {
-      alert(error.error || 'Error al eliminar cliente');
+      showError(error.error || 'Error al eliminar cliente');
     }
   };
 
@@ -203,7 +217,7 @@ const Clientes = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(cliente.id_cliente)}
+                          onClick={() => handleDelete(cliente)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar"
                         >
@@ -310,6 +324,35 @@ const Clientes = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmación Eliminar */}
+      {showConfirmDelete && clienteToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas eliminar al cliente <span className="font-bold">{clienteToDelete.nombre}</span>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  setClienteToDelete(null);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="btn btn-danger"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

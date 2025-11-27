@@ -4,17 +4,21 @@ import { useAuth } from '../context/AuthContext';
 import vehiculoService from '../services/vehiculoService';
 import clienteService from '../services/clienteService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useToast } from '../components/common/ToastContainer';
 import { formatDateShort } from '../utils/formatters';
 import { TIPOS_VEHICULO } from '../utils/constants';
 
 const Vehiculos = () => {
   const { isAdmin } = useAuth();
+  const { success, error: showError } = useToast();
   const [vehiculos, setVehiculos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState(null);
+  const [vehiculoToDelete, setVehiculoToDelete] = useState(null);
   const [formData, setFormData] = useState({
     placa: '',
     marca: '',
@@ -101,8 +105,10 @@ const Vehiculos = () => {
     try {
       if (editingVehiculo) {
         await vehiculoService.update(editingVehiculo.id_vehiculo, formData);
+        success('✅ Vehículo actualizado exitosamente');
       } else {
         await vehiculoService.create(formData);
+        success('✅ Vehículo creado exitosamente');
       }
       fetchData();
       handleCloseModal();
@@ -113,14 +119,22 @@ const Vehiculos = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este vehículo?')) return;
+  const handleDelete = (vehiculo) => {
+    setVehiculoToDelete(vehiculo);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!vehiculoToDelete) return;
 
     try {
-      await vehiculoService.delete(id);
+      await vehiculoService.delete(vehiculoToDelete.id_vehiculo);
+      success('✅ Vehículo eliminado exitosamente');
       fetchData();
+      setShowConfirmDelete(false);
+      setVehiculoToDelete(null);
     } catch (error) {
-      alert(error.error || 'Error al eliminar vehículo');
+      showError(error.error || 'Error al eliminar vehículo');
     }
   };
 
@@ -226,7 +240,7 @@ const Vehiculos = () => {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(vehiculo.id_vehiculo)}
+                      onClick={() => handleDelete(vehiculo)}
                       className="btn btn-danger flex items-center justify-center"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -396,6 +410,35 @@ const Vehiculos = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmación Eliminar */}
+      {showConfirmDelete && vehiculoToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas eliminar el vehículo <span className="font-bold">{vehiculoToDelete.placa}</span>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  setVehiculoToDelete(null);
+                }}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="btn btn-danger"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
