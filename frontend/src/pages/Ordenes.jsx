@@ -16,7 +16,10 @@ const Ordenes = () => {
   const [filterEstado, setFilterEstado] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showAddRepuestoModal, setShowAddRepuestoModal] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState(null);
+  const [selectedRepuesto, setSelectedRepuesto] = useState('');
+  const [repuestoCantidad, setRepuestoCantidad] = useState(1);
   const [formData, setFormData] = useState({
     id_vehiculo: '',
     diagnostico: '',
@@ -123,21 +126,32 @@ const Ordenes = () => {
     }
   };
 
-  const handleAddRepuesto = async (idOrden) => {
-    // Aquí podríamos abrir un modal más complejo, pero por ahora usamos prompts
-    const repuestoId = prompt('ID del repuesto a agregar:');
-    if (!repuestoId) return;
+  const handleAddRepuesto = (idOrden) => {
+    setSelectedRepuesto('');
+    setRepuestoCantidad(1);
+    setShowAddRepuestoModal(true);
+  };
 
-    const cantidad = prompt('Cantidad:', '1');
-    if (!cantidad) return;
+  const handleCloseAddRepuestoModal = () => {
+    setShowAddRepuestoModal(false);
+    setSelectedRepuesto('');
+    setRepuestoCantidad(1);
+  };
+
+  const handleConfirmAddRepuesto = async () => {
+    if (!selectedRepuesto) {
+      alert('Selecciona un repuesto');
+      return;
+    }
 
     try {
-      await ordenService.addRepuesto(idOrden, {
-        id_repuesto: parseInt(repuestoId),
-        cantidad: parseInt(cantidad)
+      await ordenService.addRepuesto(selectedOrden.id_orden, {
+        id_repuesto: parseInt(selectedRepuesto),
+        cantidad: parseInt(repuestoCantidad)
       });
       fetchData();
-      handleOpenDetailModal({ id_orden: idOrden });
+      handleOpenDetailModal(selectedOrden);
+      handleCloseAddRepuestoModal();
     } catch (error) {
       alert(error.error || 'Error al agregar repuesto');
     }
@@ -503,6 +517,109 @@ const Ordenes = () => {
                   <span>Total:</span>
                   <span>{formatCurrency(selectedOrden.costo_total)}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Agregar Repuesto */}
+      {showAddRepuestoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Agregar Repuesto a Orden #{selectedOrden?.id_orden}</h2>
+              <button 
+                onClick={handleCloseAddRepuestoModal} 
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Seleccionar Repuesto */}
+              <div>
+                <label className="label">Repuesto *</label>
+                <select
+                  value={selectedRepuesto}
+                  onChange={(e) => setSelectedRepuesto(e.target.value)}
+                  className="input"
+                >
+                  <option value="">Seleccionar repuesto</option>
+                  {repuestos.map(rep => (
+                    <option key={rep.id_repuesto} value={rep.id_repuesto}>
+                      {rep.nombre} (${rep.precio_unitario.toLocaleString()}) - Stock: {rep.stock_actual}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Cantidad */}
+              <div>
+                <label className="label">Cantidad *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={repuestoCantidad}
+                  onChange={(e) => setRepuestoCantidad(parseInt(e.target.value) || 1)}
+                  className="input"
+                />
+              </div>
+
+              {/* Información del Repuesto Seleccionado */}
+              {selectedRepuesto && (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  {(() => {
+                    const rep = repuestos.find(r => r.id_repuesto === parseInt(selectedRepuesto));
+                    if (!rep) return null;
+                    return (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Nombre:</span>
+                          <span className="font-medium">{rep.nombre}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Código:</span>
+                          <span className="font-medium">{rep.codigo}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Precio Unitario:</span>
+                          <span className="font-medium">{formatCurrency(rep.precio_unitario)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Stock Disponible:</span>
+                          <span className={`font-medium ${rep.stock_actual < repuestoCantidad ? 'text-red-600' : 'text-green-600'}`}>
+                            {rep.stock_actual}
+                          </span>
+                        </div>
+                        {repuestoCantidad > 0 && (
+                          <div className="flex justify-between pt-2 border-t font-bold text-primary-600">
+                            <span>Subtotal:</span>
+                            <span>{formatCurrency(rep.precio_unitario * repuestoCantidad)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleCloseAddRepuestoModal}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmAddRepuesto}
+                  className="btn btn-primary flex-1"
+                  disabled={!selectedRepuesto}
+                >
+                  Agregar Repuesto
+                </button>
               </div>
             </div>
           </div>
