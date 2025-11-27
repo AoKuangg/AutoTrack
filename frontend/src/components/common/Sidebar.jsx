@@ -68,6 +68,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       icon: Wrench,
       path: '/mis-ordenes',
       roles: ['cliente']
+    },
+    {
+      name: 'Mis Facturas',
+      icon: FileText,
+      path: '/mis-facturas',
+      roles: ['cliente']
     }
   ];
 

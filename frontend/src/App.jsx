@@ -17,6 +17,7 @@ import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
 import MisVehiculos from './pages/MisVehiculos';
 import MisOrdenes from './pages/MisOrdenes';
+import MisFacturas from './pages/MisFacturas';
 import NotFound from './pages/NotFound';
 
 // Componentes
@@ -133,6 +134,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['cliente']}>
                 <MisOrdenes />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Mis Facturas - Solo Cliente */}
+          <Route
+            path="mis-facturas"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <MisFacturas />
               </ProtectedRoute>
             }
           />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Edit2, Package, FileText } from 'lucide-react';
+import { Plus, Search, Eye, Edit2, Package, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import ordenService from '../services/ordenService';
 import vehiculoService from '../services/vehiculoService';
 import repuestoService from '../services/repuestoService';
@@ -17,9 +17,12 @@ const Ordenes = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddRepuestoModal, setShowAddRepuestoModal] = useState(false);
+  const [showCambioEstadoModal, setShowCambioEstadoModal] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState(null);
   const [selectedRepuesto, setSelectedRepuesto] = useState('');
   const [repuestoCantidad, setRepuestoCantidad] = useState(1);
+  const [nuevoEstado, setNuevoEstado] = useState('');
+  const [observacionesEstado, setObservacionesEstado] = useState('');
   const [formData, setFormData] = useState({
     id_vehiculo: '',
     diagnostico: '',
@@ -111,18 +114,33 @@ const Ordenes = () => {
     }
   };
 
-  const handleUpdateEstado = async (idOrden, nuevoEstado) => {
-    const observaciones = prompt('Observaciones (opcional):');
-    if (observaciones === null) return; // Canceló
+  const handleUpdateEstado = async (idOrden, nuevoEstadoSeleccionado) => {
+    setSelectedOrden({ id_orden: idOrden });
+    setNuevoEstado(nuevoEstadoSeleccionado);
+    setObservacionesEstado('');
+    setShowCambioEstadoModal(true);
+  };
 
+  const handleCloseCambioEstadoModal = () => {
+    setShowCambioEstadoModal(false);
+    setNuevoEstado('');
+    setObservacionesEstado('');
+  };
+
+  const handleConfirmCambioEstado = async () => {
     try {
-      await ordenService.updateEstado(idOrden, nuevoEstado, observaciones);
+      setSubmitting(true);
+      await ordenService.updateEstado(selectedOrden.id_orden, nuevoEstado, observacionesEstado);
       fetchData();
-      if (selectedOrden) {
-        handleOpenDetailModal({ id_orden: idOrden });
+      handleCloseCambioEstadoModal();
+      // Recargar detalles si el modal de detalles está abierto
+      if (showDetailModal) {
+        handleOpenDetailModal(selectedOrden);
       }
     } catch (error) {
       alert(error.error || 'Error al actualizar estado');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -274,23 +292,28 @@ const Ordenes = () => {
                   </button>
 
                   {orden.estado !== 'finalizado' && orden.estado !== 'entregado' && (
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          handleUpdateEstado(orden.id_orden, e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="input input-sm text-sm"
-                      defaultValue=""
-                    >
-                      <option value="">Cambiar estado</option>
-                      {Object.entries(ESTADOS_LABELS)
-                        .filter(([key]) => key !== orden.estado)
-                        .map(([key, label]) => (
-                          <option key={key} value={key}>{label}</option>
-                        ))}
-                    </select>
+                    <div className="relative group">
+                      <button
+                        className="btn btn-primary btn-sm w-full flex items-center justify-center gap-2 text-sm"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Cambiar Estado
+                      </button>
+                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
+                        {Object.entries(ESTADOS_LABELS)
+                          .filter(([key]) => key !== orden.estado)
+                          .map(([key, label]) => (
+                            <button
+                              key={key}
+                              onClick={() => handleUpdateEstado(orden.id_orden, key)}
+                              className="w-full text-left px-4 py-2 hover:bg-primary-50 hover:text-primary-700 text-sm border-b last:border-b-0 flex items-center gap-2"
+                            >
+                              <span className={`inline-block w-2 h-2 rounded-full ${ESTADOS_COLORS[key]?.includes('green') ? 'bg-green-500' : ESTADOS_COLORS[key]?.includes('blue') ? 'bg-blue-500' : ESTADOS_COLORS[key]?.includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'}`}></span>
+                              {label}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -621,6 +644,84 @@ const Ordenes = () => {
                   Agregar Repuesto
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cambio de Estado */}
+      {showCambioEstadoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <AlertCircle className="w-6 h-6 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Cambiar Estado de Orden</h2>
+            </div>
+
+            {/* Información de la orden */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">Orden #<span className="font-bold text-gray-900">{selectedOrden?.id_orden}</span></p>
+              <p className="text-sm text-gray-600">
+                Estado actual: <span className={`badge ${ESTADOS_COLORS[nuevoEstado?.split('_')[0] === 'diagnostico' ? 'diagnostico' : 'reparando']} inline-block mt-1`}>
+                  {ESTADOS_LABELS[Object.keys(ESTADOS_LABELS).find(k => ESTADOS_LABELS[k] === ESTADOS_LABELS[nuevoEstado]) || nuevoEstado]}
+                </span>
+              </p>
+            </div>
+
+            {/* Nuevo estado */}
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-gray-700 mb-2">
+                Cambiar a: <span className="text-primary-600">{ESTADOS_LABELS[nuevoEstado]}</span>
+              </p>
+              <p className="text-xs text-gray-500">
+                {nuevoEstado === 'reparando' && '🔧 La orden está en proceso de reparación'}
+                {nuevoEstado === 'finalizado' && '✅ La orden ha sido completada'}
+                {nuevoEstado === 'entregado' && '🚗 El vehículo ha sido entregado al cliente'}
+                {nuevoEstado === 'cancelado' && '❌ La orden ha sido cancelada'}
+                {nuevoEstado === 'diagnostico' && '📋 La orden está en fase de diagnóstico'}
+              </p>
+            </div>
+
+            {/* Observaciones */}
+            <div className="mb-4">
+              <label className="label">Observaciones (opcional)</label>
+              <textarea
+                value={observacionesEstado}
+                onChange={(e) => setObservacionesEstado(e.target.value)}
+                className="input"
+                rows="3"
+                placeholder="Agrega observaciones sobre este cambio de estado..."
+              />
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseCambioEstadoModal}
+                className="btn btn-secondary flex-1"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmCambioEstado}
+                className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Confirmar Cambio
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
