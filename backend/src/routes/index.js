@@ -115,7 +115,7 @@ router.put(
 );
 router.delete("/clientes/:id", authenticateToken, isAdmin, deleteCliente);
 
-// ==================== VEHÍCULOS (Admin y Mecánico) ====================
+// ==================== VEHÍCULOS (Admin, Mecánico y Cliente) ====================
 router.get("/vehiculos", authenticateToken, isMecanicoOrAdmin, getVehiculos);
 router.get(
   "/vehiculos/:id",
@@ -123,12 +123,7 @@ router.get(
   isMecanicoOrAdmin,
   getVehiculoById
 );
-router.get(
-  "/clientes/:id/vehiculos",
-  authenticateToken,
-  isMecanicoOrAdmin,
-  getVehiculosByCliente
-);
+router.get("/clientes/:id/vehiculos", authenticateToken, getVehiculosByCliente);
 router.post("/vehiculos", authenticateToken, isMecanicoOrAdmin, createVehiculo);
 router.put(
   "/vehiculos/:id",
@@ -138,8 +133,8 @@ router.put(
 );
 router.delete("/vehiculos/:id", authenticateToken, isAdmin, deleteVehiculo);
 
-// ==================== ÓRDENES DE SERVICIO (Admin y Mecánico) ====================
-router.get("/ordenes", authenticateToken, isMecanicoOrAdmin, getOrdenes);
+// ==================== ÓRDENES DE SERVICIO (Admin, Mecánico y Cliente) ====================
+router.get("/ordenes", authenticateToken, getOrdenes);
 router.get("/ordenes/:id", authenticateToken, isMecanicoOrAdmin, getOrdenById);
 router.post("/ordenes", authenticateToken, isMecanicoOrAdmin, createOrden);
 router.put("/ordenes/:id", authenticateToken, isMecanicoOrAdmin, updateOrden);
