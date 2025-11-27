@@ -8,10 +8,12 @@ import { formatCurrency } from '../utils/formatters';
 const Dashboard = () => {
   const { usuario, isAdmin } = useAuth();
   const [stats, setStats] = useState(null);
+  const [recentOrdenes, setRecentOrdenes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
+    fetchRecentOrdenes();
   }, []);
 
   const fetchStats = async () => {
@@ -20,9 +22,60 @@ const Dashboard = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
+    }
+  };
+
+  const fetchRecentOrdenes = async () => {
+    try {
+      const response = await api.get('/api/ordenes');
+      // Obtener las 5 órdenes más recientes
+      const recent = response.data
+        .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion))
+        .slice(0, 5);
+      setRecentOrdenes(recent);
+    } catch (error) {
+      console.error('Error al cargar órdenes recientes:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para calcular "hace cuánto tiempo"
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return formatDateShort(date);
+  };
+
+  const getEstadoColor = (estado) => {
+    const colors = {
+      diagnostico: 'text-yellow-600',
+      reparando: 'text-blue-600',
+      finalizado: 'text-green-600',
+      entregado: 'text-gray-600',
+      cancelado: 'text-red-600'
+    };
+    return colors[estado] || 'text-gray-600';
+  };
+
+  const getEstadoLabel = (estado) => {
+    const labels = {
+      diagnostico: 'Diagnóstico',
+      reparando: 'Reparando',
+      finalizado: 'Finalizado',
+      entregado: 'Entregado',
+      cancelado: 'Cancelado'
+    };
+    return labels[estado] || estado;
   };
 
   if (loading) {
@@ -157,27 +210,32 @@ const Dashboard = () => {
           Actividad Reciente
         </h2>
         <div className="space-y-3">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-            >
-              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-primary-600" />
+          {recentOrdenes.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No hay actividad reciente</p>
+          ) : (
+            recentOrdenes.map((orden) => (
+              <div
+                key={orden.id_orden}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                onClick={() => window.location.href = `/ordenes`}
+              >
+                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 text-primary-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    Orden #{orden.id_orden} - {orden.placa}
+                  </p>
+                  <p className={`text-xs ${getEstadoColor(orden.estado)}`}>
+                    Estado: {getEstadoLabel(orden.estado)}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-500 flex-shrink-0">
+                  {getTimeAgo(orden.fecha_creacion)}
+                </span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
-                  Orden #{item} actualizada
-                </p>
-                <p className="text-xs text-gray-600">
-                  Estado cambiado a "En reparación"
-                </p>
-              </div>
-              <span className="text-xs text-gray-500">
-                Hace {item}h
-              </span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

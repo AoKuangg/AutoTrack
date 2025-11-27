@@ -11,6 +11,7 @@ import Clientes from './pages/Clientes';
 import Vehiculos from './pages/Vehiculos';
 import Ordenes from './pages/Ordenes';
 import Repuestos from './pages/Repuestos';
+import Facturas from './pages/Facturas';
 import Usuarios from './pages/Usuarios';
 import Perfil from './pages/Perfil';
 import Configuracion from './pages/Configuracion';
@@ -84,6 +85,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['administrador', 'mecanico']}>
                 <Repuestos />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Facturas - Solo Admin */}
+          <Route
+            path="facturas"
+            element={
+              <ProtectedRoute allowedRoles={['administrador']}>
+                <Facturas />
               </ProtectedRoute>
             }
           />
