@@ -12,6 +12,8 @@ import Vehiculos from './pages/Vehiculos';
 import Ordenes from './pages/Ordenes';
 import Repuestos from './pages/Repuestos';
 import Usuarios from './pages/Usuarios';
+import Perfil from './pages/Perfil';
+import Configuracion from './pages/Configuracion';
 import NotFound from './pages/NotFound';
 
 // Componentes
@@ -95,6 +97,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Perfil - Todos los roles */}
+          <Route path="perfil" element={<Perfil />} />
+
+          {/* Configuración - Todos los roles */}
+          <Route path="configuracion" element={<Configuracion />} />
         </Route>
 
         {/* 404 - Not Found */}
