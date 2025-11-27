@@ -87,7 +87,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   <button
                     onClick={() => {
                       setShowDropdown(false);
-                      // Navegar a perfil (por implementar)
+                      navigate('/perfil');
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   >
@@ -98,7 +98,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   <button
                     onClick={() => {
                       setShowDropdown(false);
-                      // Navegar a configuración (por implementar)
+                      navigate('/configuracion');
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   >
