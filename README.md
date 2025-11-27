@@ -33,7 +33,7 @@ Sistema integral para la gestión de talleres automotrices que permite administr
 - 🔐 Autenticación segura con JWT
 - 👥 **RBAC Completo**: Control de acceso basado en roles (Admin, Mecánico, Cliente)
 - 📊 Dashboard personalizado según rol del usuario
-- 🔔 Notificaciones de estado de órdenes
+- 🔔 Notificaciones con Toast (sin alerts molestos del navegador)
 - 💰 Cálculo automático de costos (mano de obra + repuestos + IVA)
 - 📱 Diseño responsive (móvil, tablet, escritorio)
 - 🎨 Interfaz moderna con TailwindCSS
@@ -42,6 +42,9 @@ Sistema integral para la gestión de talleres automotrices que permite administr
 - 🔧 Página "Mis Órdenes" para clientes (seguimiento de reparaciones)
 - 💰 Página "Mis Facturas" para clientes (ver comprobantes de pago)
 - 📦 Modal mejorado para agregar repuestos con vista previa de stock
+- 🤖 **Creación automática de usuario** al registrar nuevo cliente
+- 🔄 **Modales de confirmación** profesionales para acciones críticas (eliminar, cambiar estado)
+- ✅ **Notificaciones Toast** para todas las acciones (crear, editar, eliminar, etc.)
 
 ---
 
@@ -63,6 +66,7 @@ Sistema integral para la gestión de talleres automotrices que permite administr
 - **Axios** - Cliente HTTP
 - **TailwindCSS** - Estilos
 - **Lucide React** - Iconos
+- **React Toastify** - Notificaciones Toast
 
 ### Herramientas
 
@@ -155,12 +159,15 @@ El sistema incluye usuarios de prueba:
 ### Flujo de Trabajo Típico
 
 1. **Registro de Cliente**: Admin/Mecánico registra un nuevo cliente
+   - Se crea automáticamente un usuario con rol "cliente"
+   - Contraseña inicial generada automáticamente: primeras 3 letras del nombre + primeros 4 dígitos del teléfono
+   - El cliente puede cambiar su contraseña en el módulo de Perfil
 2. **Registro de Vehículo**: Se asocia el vehículo al cliente
 3. **Crear Orden**: Se crea una orden de servicio con diagnóstico
 4. **Agregar Repuestos**: Se agregan los repuestos utilizados
-5. **Actualizar Estado**: Se cambia el estado (diagnóstico → reparando → finalizado)
-6. **Generar Factura**: Admin genera la factura automáticamente
-7. **Marcar como Pagada**: Admin marca la factura como pagada
+5. **Actualizar Estado**: Se cambia el estado (diagnóstico → reparando → finalizado) con modal de confirmación
+6. **Generar Factura**: Admin genera la factura automáticamente con modal de método de pago
+7. **Marcar como Pagada**: Admin marca la factura como pagada con modal de confirmación
 
 ---
 
@@ -470,6 +477,16 @@ Si tienes preguntas o encuentras algún problema:
 ---
 
 ## 🔄 Actualizaciones
+
+### v1.1.0 (Noviembre 2025)
+
+- ✅ Integración de React Toastify para notificaciones profesionales
+- ✅ Reemplazo de todos los alerts del navegador por toasts
+- ✅ Modales de confirmación para acciones críticas
+- ✅ Creación automática de usuario al registrar cliente
+- ✅ Contraseña predeterminada generada automáticamente
+- ✅ Mejora de UX con modales elegantes en lugar de confirm()
+- ✅ Notificaciones toast en todas las operaciones CRUD
 
 ### v1.0.0 (Noviembre 2025)
 
